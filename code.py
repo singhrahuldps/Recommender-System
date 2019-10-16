@@ -7,7 +7,9 @@ import torch.nn as nn
 import torch.optim as optim
 import random
 
-# laoding the table as a pandas dataframe
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# loading the table as a pandas dataframe
 ratings = pd.read_csv('ratings.csv')
 
 # getting the three column names from a pandas dataframe
@@ -80,7 +82,7 @@ class EmbeddingModel(nn.Module):
 # create a model object
 # y_range has been extended(0-11) than required(1-10) to make the
 # values lie in the linear region of the sigmoid function
-model = EmbeddingModel(10, len(users), len(items), [0,11], initialise = 0.01).cuda()
+model = EmbeddingModel(10, len(users), len(items), [0,11], initialise = 0.01).to(device)
 
 # split the data, returns a list [train, valid]
 data = get_data(ratings, 0.1)
@@ -89,7 +91,7 @@ data = get_data(ratings, 0.1)
 loss_function = nn.MSELoss()
 
 # optimizer function will update the weights of the Neural Net
-optimizer = optim.SGD(model.parameters(), lr=0.05, momentum=0.9)
+optimizer = optim.SGD(model.parameters(), lr=2e-3, momentum=0.9)
 
 # batch size for each input
 bs = 128
@@ -105,9 +107,9 @@ def train(epochs = 10, bs = 64):
             x1,x2,y = get_batch(data[0],i,i+bs)
             i+=bs
             ct+=1
-            user_ids = torch.LongTensor([user2idx[u] for u in x1]).cuda()
-            item_ids = torch.LongTensor([item2idx[b] for b in x2]).cuda()
-            y = torch.Tensor(y).cuda()
+            user_ids = torch.LongTensor([user2idx[u] for u in x1]).to(device)
+            item_ids = torch.LongTensor([item2idx[b] for b in x2]).to(device)
+            y = torch.Tensor(y).to(device)
             # disregard/zero the gradients from previous computation
             model.zero_grad() 
             preds = model(user_ids,item_ids)
@@ -126,9 +128,9 @@ def train(epochs = 10, bs = 64):
             x11,x21,y1 = get_batch(data[1],i,i+bs)
             i+=bs
             cv+=1
-            user_ids = torch.LongTensor([user2idx[u] for u in x11]).cuda()
-            item_ids = torch.LongTensor([item2idx[b] for b in x21]).cuda()
-            y1 = torch.Tensor(y1).cuda()
+            user_ids = torch.LongTensor([user2idx[u] for u in x11]).to(device)
+            item_ids = torch.LongTensor([item2idx[b] for b in x21]).to(device)
+            y1 = torch.Tensor(y1).to(device)
             preds = m(user_ids,item_ids)
             loss = loss_function(preds, y1)
             total_val_loss += loss.item()
